@@ -1,0 +1,31 @@
+[package]
+name = "cargo-archpkg"
+version = "0.1.0"
+edition = "2021"
+description = "Create PKGBUILD from Rust project"
+authors = [
+    "Tsvi Benschar <tsvihbenschar@gmail.com>"
+]
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/Benschar1/cargo-archpkg"
+homepage = "https://github.com/Benschar1/cargo-archpkg"
+
+[pkgbuild]
+check = false
+
+[lib]
+name = "pkgbuild"
+path = "src/pkgbuild/lib.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+blake2 = "0.10.6"
+cargo = "0.73.0"
+clap = { version = "4.4.0", features = ["derive"] }
+semver = "1.0.18"
+serde = { version = "1.0.188", features = ["serde_derive"] }
+serde_json = "1.0.105"
+toml = "0.7.6"
