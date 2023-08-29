@@ -1,19 +1,19 @@
+mod cli;
 mod config;
 
 use std::fs::{self, DirBuilder, File};
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
 use cargo::core::resolver::features::CliFeatures;
 use cargo::core::EitherManifest;
 use cargo::core::{SourceId, Workspace};
-use cargo::ops::{package, PackageOpts, Packages};
+use cargo::ops::{package, PackageOpts};
 use cargo::util::command_prelude::root_manifest;
 use cargo::util::config::Config as CargoConfig;
 use cargo::util::toml::read_manifest;
 use cargo::util::FileLock;
-use clap::{Args, Parser};
 
 use config::PkgbuildConfig;
 use pkgbuild::Pkgbuild;
@@ -21,54 +21,10 @@ use pkgbuild::Pkgbuild;
 const TARGET_DIR: &str = "archpkg";
 const PKGBUILD_FILENAME: &str = "PKGBUILD";
 
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct CliArgs {
-    //TODO allow naming remote package
-    #[arg(short = Some('m'), long = Some("manifest"), value_name = "MANIFEST")]
-    manifest_path: Option<PathBuf>,
-
-    #[arg(short = Some('n'), long = Some("no-verify"), default_value = "false")]
-    no_verify: bool,
-
-    #[arg(short, long)]
-    output: Option<PathBuf>,
-
-    #[command(flatten)]
-    packages: PackagesCli,
-}
-
-#[derive(Args, Debug, Clone)]
-#[group(required = false, multiple = false)]
-struct PackagesCli {
-    #[arg(short, long)]
-    all: bool,
-
-    #[arg(short, long, value_name = "EXCLUDED")]
-    exclude: Option<Vec<String>>,
-
-    #[arg(short = Some('p'), long = Some("packages"), value_name = "PACKAGES")]
-    include: Option<Vec<String>>,
-}
-
-impl From<PackagesCli> for Packages {
-    fn from(value: PackagesCli) -> Self {
-        if value.all {
-            Packages::All
-        } else if let Some(exclude) = value.exclude {
-            Packages::OptOut(exclude)
-        } else if let Some(include) = value.include {
-            Packages::Packages(include)
-        } else {
-            Packages::Default
-        }
-    }
-}
-
 //TODO clean this
 fn main() -> Result<()> {
     //TODO handle parsing when called as cargo subcommand
-    let cli_args = CliArgs::parse();
+    let cli_args = cli::parse();
 
     let cargo_config = CargoConfig::default()?;
     let root_manifest = root_manifest(
@@ -147,7 +103,7 @@ fn main() -> Result<()> {
 fn tarball(
     cargo_config: &CargoConfig,
     ws: &Workspace<'_>,
-    cli_args: &CliArgs,
+    cli_args: &cli::Opts,
 ) -> Result<Vec<FileLock>> {
     if ws.root_maybe().is_embedded() {
         return Err(anyhow!(
