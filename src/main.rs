@@ -41,7 +41,7 @@ fn main() -> Result<()> {
             let ws = Workspace::new(&root_manifest, &cargo_config)?;
 
             let out_dir = cli_args
-                .output
+                .output_dir
                 .clone()
                 .unwrap_or(ws.target_dir().into_path_unlocked().join(TARGET_DIR));
 

@@ -1,47 +1,37 @@
 use std::path::PathBuf;
 
 use cargo::ops::Packages;
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser};
 
 pub fn parse() -> Opts {
-    match TopCmd::parse().executable {
-        Executable::Cargo(ArchpkgSubcmd::Archpkg(args)) => args,
-        Executable::CargoArchpkg(args) => args,
-    }
+    let Cmd::Archpkg(opts) = Cmd::parse();
+    opts
 }
 
-#[derive(Debug, Parser)]
-#[command(multicall = true)]
-struct TopCmd {
-    #[command(subcommand)]
-    executable: Executable,
-}
-
-#[derive(Debug, Subcommand)]
-enum Executable {
-    #[command(subcommand)]
-    Cargo(ArchpkgSubcmd),
-    CargoArchpkg(Opts),
-}
-
-#[derive(Clone, Debug, Subcommand)]
-#[command(disable_help_subcommand = true)]
-enum ArchpkgSubcmd {
+#[derive(Parser)]
+#[command(name = "cargo")]
+#[command(bin_name = "cargo")]
+enum Cmd {
+    #[command(about = "Create PKGBUILD from Rust project")]
     Archpkg(Opts),
 }
 
 #[derive(Clone, Debug, Parser)]
-#[command(author, version, about, long_about = None)]
 pub struct Opts {
-    //TODO allow naming remote package
-    #[arg(short = Some('m'), long = Some("manifest"), value_name = "MANIFEST")]
-    pub manifest_path: Option<PathBuf>,
-
-    #[arg(short = Some('n'), long = Some("no-verify"), default_value = "false")]
+    #[arg(
+        short,
+        long,
+        default_value = "false",
+        help = "Don’t verify the contents by building them"
+    )]
     pub no_verify: bool,
 
-    #[arg(short, long)]
-    pub output: Option<PathBuf>,
+    //TODO allow naming remote package
+    #[arg(short, long, help = "Path to Cargo.toml")]
+    pub manifest_path: Option<PathBuf>,
+
+    #[arg(short, long, help = "Directory for PKGBUILD and its provided files")]
+    pub output_dir: Option<PathBuf>,
 
     #[command(flatten)]
     pub packages: PackagesCli,
@@ -50,13 +40,23 @@ pub struct Opts {
 #[derive(Args, Clone, Debug)]
 #[group(required = false, multiple = false)]
 pub struct PackagesCli {
-    #[arg(short, long)]
+    #[arg(short, long, help = "Package all crates in workspace")]
     all: bool,
 
-    #[arg(short, long, value_name = "EXCLUDED")]
+    #[arg(
+        short,
+        long,
+        value_name = "PACKAGE",
+        help = "Don't include specified package(s)"
+    )]
     exclude: Option<Vec<String>>,
 
-    #[arg(short = Some('p'), long = Some("packages"), value_name = "PACKAGES")]
+    #[arg(
+        short = Some('p'),
+        long = Some("package"),
+        value_name = "PACKAGE",
+        help = "Include specified package(s)"
+    )]
     include: Option<Vec<String>>,
 }
 

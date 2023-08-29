@@ -1,11 +1,9 @@
 [package]
 name = "cargo-archpkg"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Create PKGBUILD from Rust project"
-authors = [
-    "Tsvi Benschar <tsvihbenschar@gmail.com>"
-]
+authors = ["Tsvi Benschar <tsvihbenschar@gmail.com>"]
 license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/Benschar1/cargo-archpkg"
