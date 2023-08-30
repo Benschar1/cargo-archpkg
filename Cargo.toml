@@ -1,6 +1,6 @@
 [package]
 name = "cargo-archpkg"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Create PKGBUILD from Rust project"
 authors = ["Tsvi Benschar <tsvihbenschar@gmail.com>"]
@@ -11,6 +11,24 @@ homepage = "https://github.com/Benschar1/cargo-archpkg"
 
 [pkgbuild]
 check = false
+depends = [
+    "brotli",
+    "curl",
+    "e2fsprogs",
+    "gcc-libs",
+    "glibc",
+    "keyutils",
+    "krb5",
+    "libgit2",
+    "libidn2",
+    "libnghttp2",
+    "libpsl",
+    "libssh2",
+    "libunistring",
+    "openssl",
+    "zlib",
+    "zstd",
+]
 
 [lib]
 name = "pkgbuild"

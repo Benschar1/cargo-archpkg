@@ -1,11 +1,16 @@
 use anyhow::Result;
+use pkgbuild::Pkgbuild;
 use serde::Deserialize;
 
 pub const TOML_KEY_NAME: &str = "pkgbuild";
 
 #[derive(Deserialize, Debug)]
 pub struct PkgbuildConfig {
-    pub check: Option<bool>,
+    #[serde(default = "default_check")]
+    pub check: bool,
+
+    #[serde(default = "default_depends")]
+    pub depends: Vec<String>,
 }
 
 impl PkgbuildConfig {
@@ -18,4 +23,20 @@ impl PkgbuildConfig {
 
         Ok(None)
     }
+
+    pub fn mod_pkgbuild(&self, pkgbuild: &mut Pkgbuild) {
+        if !self.check {
+            pkgbuild.functions.check = None;
+        }
+
+        pkgbuild.dependencies.depends = Some(self.depends.clone());
+    }
+}
+
+fn default_check() -> bool {
+    true
+}
+
+fn default_depends() -> Vec<String> {
+    Vec::new()
 }

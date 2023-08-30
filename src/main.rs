@@ -31,6 +31,7 @@ fn main() -> Result<()> {
         cli_args.manifest_path.as_ref().map(|p| p.as_path()),
         &cargo_config,
     )?;
+
     let pkgbuild_config = PkgbuildConfig::from_str(&fs::read_to_string(&root_manifest)?)?;
 
     let source_id = SourceId::for_path(&root_manifest)?;
@@ -75,11 +76,9 @@ fn main() -> Result<()> {
                     &mut File::open(&source_path)?,
                 )?;
 
-                pkgbuild_config.as_ref().map(|config| {
-                    if !config.check.unwrap_or(true) {
-                        pkgbuild.functions.check = None;
-                    }
-                });
+                if let Some(ref pkgbuild_config) = pkgbuild_config {
+                    pkgbuild_config.mod_pkgbuild(&mut pkgbuild);
+                }
 
                 let pkgbuild_path = out_dir.join(PKGBUILD_FILENAME);
                 if Path::try_exists(&pkgbuild_path)? {
