@@ -54,6 +54,20 @@ impl Pkgbuild {
             functions: Functions::default(),
         })
     }
+
+    pub fn new_remote_crate_file(manifest: Manifest, url: String, checksum: String) -> Self {
+        let metadata = Metadata::from(manifest);
+        let name = format!("{}-{}.tar.gz", metadata.pkgname, metadata.pkgver);
+        Self {
+            metadata,
+            dependencies: Dependencies::default(),
+            package_relations: PackageRelations::default(),
+            misc: Misc::default(),
+            sources: vec![Source::remote_crate_file(url, name, checksum)],
+            valid_pgp_keys: None,
+            functions: Functions::default(),
+        }
+    }
 }
 
 impl fmt::Display for Pkgbuild {

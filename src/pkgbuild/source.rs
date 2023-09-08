@@ -50,6 +50,15 @@ impl Source {
             no_extract,
         })
     }
+
+    pub fn remote_crate_file(url: String, alias: String, checksum: String) -> Self {
+        Self {
+            location: url,
+            alias: Some(alias),
+            integrity: checksum,
+            no_extract: false,
+        }
+    }
 }
 
 fn blake2_sum<R: Read>(reader: &mut R) -> Result<String> {

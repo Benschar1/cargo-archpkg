@@ -11,6 +11,7 @@ homepage = "https://github.com/Benschar1/cargo-archpkg"
 
 [pkgbuild]
 check = false
+source = { uri = "$url/archive/refs/tags/v$pkgver.tar.gz", checksum = "385b514f9d91d06dc786d02ed24adcddb826fbc35a4a97d203480b636f96b0414925e6701e10554cc6967bd6c07b5d7443d028ac1f0aa73d388179102f15418e" }
 depends = [
     "brotli",
     "curl",

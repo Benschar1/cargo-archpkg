@@ -4,6 +4,7 @@ mod config;
 use std::fs::{self, DirBuilder, File};
 use std::io::{self, Write};
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Context, Result};
 use cargo::core::resolver::features::CliFeatures;
@@ -17,6 +18,8 @@ use cargo::util::FileLock;
 
 use config::PkgbuildConfig;
 use pkgbuild::Pkgbuild;
+
+use crate::config::RemoteSource;
 
 const TARGET_DIR: &str = "archpkg";
 const PKGBUILD_FILENAME: &str = "PKGBUILD";
@@ -48,48 +51,69 @@ fn main() -> Result<()> {
 
             DirBuilder::new().recursive(true).create(&out_dir)?;
 
-            let flocks = tarball(&cargo_config, &ws, &cli_args)?;
+            match pkgbuild_config.source {
+                config::Source::Provided => {
+                    let flocks = tarball(&cargo_config, &ws, &cli_args)?;
 
-            for flock in flocks {
-                let source_alias = format!(
-                    "{pkgname}-{pkgver}.tar.gz",
-                    pkgname = manifest.name(),
-                    pkgver = manifest.version(),
-                );
+                    for flock in flocks {
+                        dbg!(&flock);
 
-                let source_path = out_dir.join(&source_alias);
+                        let flock_path = flock.path();
+                        let file_name = flock_path.file_name().ok_or(anyhow!(
+                            "couldn't extract file name from file lock {flock:?}"
+                        ))?;
+                        let pkg_name = flock_path.file_stem().ok_or(anyhow!(
+                            "couldn't extract file name from file lock {flock:?}"
+                        ))?;
 
-                //TODO allow overwriting, control with cli option
-                if Path::try_exists(&source_path)? {
-                    return Err(anyhow!(
-                        "file {source_alias} exists in {out_dir:?}, cannot overwrite it"
-                    ));
-                } else {
-                    let mut source_file = File::create(&source_path)?;
-                    io::copy(&mut flock.file(), &mut source_file)?;
+                        let out_dir = out_dir.join(pkg_name);
+
+                        DirBuilder::new().create(&out_dir)?;
+
+                        let source_path = out_dir.join(file_name);
+
+                        if Path::try_exists(&source_path)? {
+                            return Err(anyhow!("cannot overwrite {source_path:?}"));
+                        } else {
+                            let mut source_file = File::create(&source_path)?;
+                            io::copy(&mut flock.file(), &mut source_file)?;
+                        }
+
+                        let mut pkgbuild = Pkgbuild::new_provided_crate_file(
+                            manifest.clone(),
+                            file_name.to_string_lossy().to_string(),
+                            &mut File::open(&source_path)?,
+                        )?;
+
+                        pkgbuild_config.mod_pkgbuild(&mut pkgbuild);
+
+                        let pkgbuild_path = out_dir.join(PKGBUILD_FILENAME);
+                        if Path::try_exists(&pkgbuild_path)? {
+                            return Err(anyhow!("cannot overwrite {pkgbuild_path:?}"));
+                        } else {
+                            let mut pkgbuild_file = File::create(pkgbuild_path)?;
+                            write!(pkgbuild_file, "{pkgbuild}")?;
+                        }
+                    }
                 }
-
-                //TODO choose to point to remote source, like github or crates.io
-                let mut pkgbuild = Pkgbuild::new_provided_crate_file(
-                    manifest.clone(),
-                    source_alias,
-                    &mut File::open(&source_path)?,
-                )?;
-
-                if let Some(ref pkgbuild_config) = pkgbuild_config {
+                config::Source::Remote(RemoteSource {
+                    ref uri,
+                    ref checksum,
+                }) => {
+                    let mut pkgbuild =
+                        Pkgbuild::new_remote_crate_file(manifest, uri.clone(), checksum.clone());
                     pkgbuild_config.mod_pkgbuild(&mut pkgbuild);
+                    let pkgbuild_path = out_dir.join(PKGBUILD_FILENAME);
+                    if Path::try_exists(&pkgbuild_path)? {
+                        return Err(anyhow!(
+                            "file {PKGBUILD_FILENAME} exists in {out_dir:?}, cannot overwrite it"
+                        ));
+                    } else {
+                        let mut pkgbuild_file = File::create(pkgbuild_path)?;
+                        write!(pkgbuild_file, "{pkgbuild}")?;
+                    }
                 }
-
-                let pkgbuild_path = out_dir.join(PKGBUILD_FILENAME);
-                if Path::try_exists(&pkgbuild_path)? {
-                    return Err(anyhow!(
-                        "file {PKGBUILD_FILENAME} exists in {out_dir:?}, cannot overwrite it"
-                    ));
-                } else {
-                    let mut pkgbuild_file = File::create(pkgbuild_path)?;
-                    write!(pkgbuild_file, "{pkgbuild}")?;
-                }
-            }
+            };
             Ok(())
         }
         //TODO handle virtual manifests
